@@ -1,0 +1,293 @@
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections.Generic;
+
+public class GemManager : MonoBehaviour
+{
+    public static GemManager Instance { get; private set; }
+
+    // UI-Elemente
+    public Text gemText;
+    public Button earnGemButton;
+    public Button gemUpgradeButton;
+    public Text gemUpgradeCostText;
+
+    public Button gemPrestigeButton;
+    public Text gemPrestigeCostText;
+    public Text gemPrestigeInfoText;
+
+    public Button unlockGemAreaButton;  // Der Kaufbutton zum Freischalten des Bereichs
+    public Text unlockCostText;
+
+    // Kosten für das Freischalten des Gem-Bereichs
+    public int gemAreaUnlockCost = 10000;
+    public GameObject lockedPanel; // Graues Panel, das den Gem-Bereich sperrt
+    public Text unlockText; // Locked-Text
+
+    // Prestige Upgrades
+    public List<Upgrade> gemUpgrades = new List<Upgrade>();
+    public List<PrestigeUpgrade> prestigeUpgrades = new List<PrestigeUpgrade>();
+
+    // Flags zur Verhinderung mehrfacher Aufrufe
+    private bool canUpgradeGem = true;
+
+    private void Start()
+    {
+        Instance = this;
+
+        AddGemUpgrades();
+        UpdateGemAreaLockStatus();
+
+        earnGemButton.onClick.AddListener(EarnGems);
+        gemUpgradeButton.onClick.AddListener(OnGemUpgrade);
+        gemPrestigeButton.onClick.AddListener(OnGemPrestige);
+        unlockGemAreaButton.onClick.AddListener(UnlockGemArea);
+
+        // Füge die Prestige-Upgrades hinzu
+        AddPrestigeUpgrades();
+
+        UpdateUI();
+    }
+
+    public void EarnGems()
+    {
+        if (PlayerData.Instance.isGemAreaUnlocked)
+        {
+            PlayerData.Instance.gems += PlayerData.Instance.GetTotalGemsPerClick();
+            UpdateUI();
+        }
+    }
+    private void UpdateGemAreaLockStatus()
+    {
+        if (PlayerData.Instance.isGemAreaUnlocked)
+        {
+            // Wenn freigeschaltet, verstecke das graue Panel und den Button
+            lockedPanel.SetActive(false);
+            unlockGemAreaButton.gameObject.SetActive(false);
+            unlockText.gameObject.SetActive(false);
+
+            // Aktiviere alle Gem-bezogenen Buttons
+            gemUpgradeButton.interactable = true;
+            earnGemButton.interactable = true;
+        }
+        else
+        {
+            // Wenn gesperrt, zeige das graue Panel und den Button
+            lockedPanel.SetActive(true);
+            unlockGemAreaButton.gameObject.SetActive(true);
+            unlockText.gameObject.SetActive(true);
+
+            // Deaktiviere alle Gem-bezogenen Buttons
+            gemUpgradeButton.interactable = false;
+            earnGemButton.interactable = false;
+        }
+    }
+    public void UnlockGemArea()
+    {
+        const int cost = 10000; // Kosten für den Gem-Bereich
+        if (PlayerData.Instance.money >= cost)
+        {
+            PlayerData.Instance.money -= cost; // Ziehe die Kosten ab
+            PlayerData.Instance.isGemAreaUnlocked = true; // Entsperre den Gem-Bereich
+            UpdateUI(); // Aktualisiere die UI
+        }
+        else
+        {
+            Debug.Log("Not enough money to unlock the Gem area.");
+        }
+    }
+    private void OnGemUpgrade()
+    {
+        if (PlayerData.Instance.isGemAreaUnlocked && PlayerData.Instance.gems >= gemUpgrades[PlayerData.Instance.currentGemUpgradeIndex].cost)
+        {
+            UpgradeGem();
+        }
+    }
+
+    private void ResetGemUpgrade()
+    {
+        canUpgradeGem = true;
+    }
+
+    public void UpgradeGem()
+    {
+        // Überprüfe, ob der Upgrade-Index noch in der Liste gültig ist
+        if (PlayerData.Instance.currentGemUpgradeIndex < gemUpgrades.Count)
+        {
+            Upgrade upgrade = gemUpgrades[PlayerData.Instance.currentGemUpgradeIndex]; // Aktuelles Upgrade laden
+
+            // Kosten aus der Liste entnehmen
+            int cost = upgrade.cost;
+            if (PlayerData.Instance.gems >= cost)
+            {
+                // Ziehe die Kosten ab und wende den Effekt an
+                PlayerData.Instance.gems -= cost;
+                PlayerData.Instance.baseGemsPerClick += Mathf.FloorToInt(upgrade.effect); // Füge den Effekt hinzu
+
+                // Erhöhe den Upgrade-Index, um das nächste Upgrade freizuschalten
+                PlayerData.Instance.currentGemUpgradeIndex++;
+
+                // Aktualisiere die UI nach dem Upgrade
+                UpdateUI();
+            }
+            else
+            {
+                Debug.Log("Not enough gems for the gem upgrade.");
+            }
+        }
+        else
+        {
+            Debug.Log("Max upgrades reached!"); // Diese Zeile wird nur erreicht, wenn der Index das Limit überschritten hat.
+        }
+    }
+
+
+    private void OnGemPrestige()
+    {
+        if (PlayerData.Instance.isGemAreaUnlocked && PlayerData.Instance.gems >= GetGemPrestigeCost())
+        {
+            ApplyPrestigeBoost();
+            PlayerData.Instance.gemPrestigeLevel++;
+            ResetGems();
+            UpdateUI();
+        }
+    }
+
+
+    private float GetGemPrestigeCost()
+    {
+        // Kosten für das aktuelle Prestige-Level
+        if (PlayerData.Instance.gemPrestigeLevel < prestigeUpgrades.Count)
+        {
+            return prestigeUpgrades[PlayerData.Instance.gemPrestigeLevel].cost;
+        }
+        return float.MaxValue; // Maximale Kosten, wenn das Level nicht existiert
+    }
+
+    private void ApplyPrestigeBoost()
+    {
+        // Überprüfen, ob das Prestige-Level gültig ist
+        if (PlayerData.Instance.gemPrestigeLevel < prestigeUpgrades.Count)
+        {
+            PrestigeUpgrade upgrade = prestigeUpgrades[PlayerData.Instance.gemPrestigeLevel];
+
+            // Multiplikatoren anwenden
+            PlayerData.Instance.gemPrestigeMoneyMultiplier = upgrade.moneyMultiplier; // Geld-Boost
+            PlayerData.Instance.gemMutiplier = upgrade.gemsMultiplier; // Gems pro Klick Boost
+
+            // Rebirth Points Bonus direkt verdoppeln
+            PlayerData.Instance.rebirthPointMultiplier = upgrade.rebirthPointMultiplier; // Rebirth-Punkte Boost verdoppeln
+
+            // Debug-Ausgaben für Überprüfung
+            Debug.Log($"Applied Prestige Boost: Money Multiplier: {PlayerData.Instance.gemPrestigeMoneyMultiplier}, Gems Multiplier: {PlayerData.Instance.gemMutiplier}, Rebirth Points Bonus: {PlayerData.Instance.rebirthPointMultiplier}");
+        }
+        else
+        {
+            Debug.Log("Max prestige upgrades reached.");
+        }
+    }
+    private void UpdateUI()
+    {
+        gemText.text = $"Gems: {PlayerData.Instance.gems}"; // Aktualisiere den Gems-Text
+
+        // Überprüfen, ob der Gem-Bereich gekauft wurde
+        if (PlayerData.Instance.isGemAreaUnlocked)
+        {
+            // Wenn der Gem-Bereich entsperrt ist, zeige die Upgrades und den Gem Click Button an
+            gemUpgradeCostText.gameObject.SetActive(true);
+            gemUpgradeButton.gameObject.SetActive(true);
+            gemPrestigeButton.gameObject.SetActive(true);
+
+            // Zeige die Kosten und den Effekt des nächsten Upgrades an
+            if (PlayerData.Instance.currentGemUpgradeIndex < gemUpgrades.Count)
+            {
+                Upgrade gemUpgrade = gemUpgrades[PlayerData.Instance.currentGemUpgradeIndex];
+                gemUpgradeCostText.text = $"Cost: {gemUpgrade.cost} Gems + {gemUpgrade.effect} gems per click";
+                gemUpgradeButton.interactable = true;
+            }
+            else
+            {
+                gemUpgradeCostText.text = "Max upgrades reached";
+                gemUpgradeButton.interactable = false; // Deaktiviere den Button, wenn alle Upgrades erreicht wurden
+            }
+
+            // Aktualisiere den Prestige-Bereich
+            gemPrestigeCostText.text = $"GemPrestige Cost: {GetGemPrestigeCost()} Gems";
+            gemPrestigeInfoText.text = $"Current Prestige Level: {PlayerData.Instance.gemPrestigeLevel}\nGem Multiplier: {PlayerData.Instance.gemMutiplier}x\nMoney Multiplier: {PlayerData.Instance.gemPrestigeMoneyMultiplier}x\nRebirth Points Bonus: {PlayerData.Instance.rebirthPointMultiplier}x";
+
+            // Blende den Locked-Bereich aus
+            unlockText.gameObject.SetActive(false);
+            unlockGemAreaButton.gameObject.SetActive(false);
+            unlockCostText.gameObject.SetActive(false); // Deaktiviere den Unlock-Cost-Text
+            lockedPanel.SetActive(false); // Deaktiviere das Locked-Panel
+        }
+        else
+        {
+            // Wenn der Gem-Bereich noch gesperrt ist
+            gemUpgradeCostText.gameObject.SetActive(false);
+            gemUpgradeButton.gameObject.SetActive(false);
+            gemPrestigeButton.gameObject.SetActive(false);
+
+            // Zeige den Locked-Text und den Kauf-Button
+            unlockText.gameObject.SetActive(true);
+            unlockGemAreaButton.gameObject.SetActive(true);
+            unlockCostText.text = "Cost: 10,000 Money"; // Setze den Text für die Unlock-Kosten
+            unlockCostText.gameObject.SetActive(true); // Aktiviere den Unlock-Cost-Text
+            gemPrestigeCostText.text = "";
+            gemPrestigeInfoText.text = "";
+
+            lockedPanel.SetActive(true); // Aktiviere das Locked-Panel
+        }
+    }
+
+
+
+    private void ResetGems()
+    {
+        PlayerData.Instance.gems = 0; // Setze die Anzahl der Gems auf 0 zurück
+        PlayerData.Instance.baseGemsPerClick = 1; // Setze die Basis Gems pro Klick zurück
+        PlayerData.Instance.currentGemUpgradeIndex = 0; // Setze den Upgrade-Index zurück
+    }
+
+    private void AddGemUpgrades()
+    {
+        gemUpgrades.Add(new Upgrade(100, 1));
+        gemUpgrades.Add(new Upgrade(200, 2));
+        gemUpgrades.Add(new Upgrade(250, 2));
+        gemUpgrades.Add(new Upgrade(350, 3));
+        gemUpgrades.Add(new Upgrade(450, 3));
+        gemUpgrades.Add(new Upgrade(500, 3));
+        gemUpgrades.Add(new Upgrade(650, 4));
+        gemUpgrades.Add(new Upgrade(800, 4));
+        gemUpgrades.Add(new Upgrade(1200, 4));
+        gemUpgrades.Add(new Upgrade(1600, 5));
+        gemUpgrades.Add(new Upgrade(2400, 6));
+        gemUpgrades.Add(new Upgrade(3400, 7));
+    }
+
+    private void AddPrestigeUpgrades()
+    {
+        prestigeUpgrades.Add(new PrestigeUpgrade(1000, 2f, 4f, 1f)); 
+        prestigeUpgrades.Add(new PrestigeUpgrade(10000, 3f, 4f, 1f)); 
+        prestigeUpgrades.Add(new PrestigeUpgrade(25000, 3f, 4f, 2f));
+        prestigeUpgrades.Add(new PrestigeUpgrade(75000, 3f, 6f, 2f));
+    }
+}
+
+// Klasse für Prestige-Upgrade-Daten
+[System.Serializable]
+public class PrestigeUpgrade
+{
+    public float cost; // Kosten für das Prestige-Upgrade
+    public float moneyMultiplier; // Multiplikator für das Geld
+    public float gemsMultiplier; // Multiplikator für die Gems pro Klick
+    public float rebirthPointMultiplier; // Bonus für Rebirth-Punkte
+
+    public PrestigeUpgrade(float cost, float moneyMultiplier, float gemsMultiplier, float rebirthPointMultiplier)
+    {
+        this.cost = cost;
+        this.moneyMultiplier = moneyMultiplier;
+        this.gemsMultiplier = gemsMultiplier;
+        this.rebirthPointMultiplier = rebirthPointMultiplier;
+    }
+}
