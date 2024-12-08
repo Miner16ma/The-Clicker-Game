@@ -1,0 +1,72 @@
+using UnityEngine;
+
+public class CanvasManager : MonoBehaviour
+{
+    public RectTransform canvasTransform; // Ziehe hier dein Canvas-Objekt in Unity
+    public Vector3 shopPosition = new Vector3(500, 0, 0); 
+    public Vector3 originalPosition = new Vector3(0, 0, 0); 
+    public Vector3 rebirthShopPosition = new Vector3(-500, 0, 0); // Position für den Rebirth-Shop
+    public Vector3 gemPosition = new Vector3(-1000, 0, 0); // Position für Gem Sachen
+    public float moveSpeed = 5f; // Geschwindigkeit der Bewegung
+
+    private bool isMoving = false; // Flag, um mehrfaches Auslösen der Bewegung zu verhindern
+
+    void Update()
+    {
+        // Überprüfen, ob die Tasten D, A oder F gedrückt werden, um die Position des Canvas zu ändern
+        if (Input.GetKeyDown(KeyCode.D) && !isMoving)
+        {
+            MoveToShop();
+        }
+        else if (Input.GetKeyDown(KeyCode.A) && !isMoving)
+        {
+            MoveToOriginal();
+        }
+        else if (Input.GetKeyDown(KeyCode.F) && !isMoving)
+        {
+            MoveToRebirthShop();
+        }
+        else if (Input.GetKeyDown(KeyCode.S) && !isMoving)
+        {
+            MoveToGem();
+        }
+    }
+
+    void MoveToShop()
+    {
+        StartCoroutine(MoveCanvas(shopPosition));
+    }
+
+    void MoveToOriginal()
+    {
+        StartCoroutine(MoveCanvas(originalPosition));
+    }
+
+    void MoveToRebirthShop()
+    {
+        StartCoroutine(MoveCanvas(rebirthShopPosition));
+    }
+    void MoveToGem()
+    {
+        StartCoroutine(MoveCanvas(gemPosition));
+    }
+
+    System.Collections.IEnumerator MoveCanvas(Vector3 targetPosition)
+    {
+        isMoving = true;
+        Vector3 startPosition = canvasTransform.anchoredPosition;
+        float time = 0;
+
+        // Animation der Bewegung des Canvas
+        while (time < 1)
+        {
+            time += Time.deltaTime * moveSpeed;
+            canvasTransform.anchoredPosition = Vector3.Lerp(startPosition, targetPosition, time);
+            yield return null;
+        }
+
+        // Endposition setzen, um sicherzustellen, dass sie genau erreicht wird
+        canvasTransform.anchoredPosition = targetPosition;
+        isMoving = false;
+    }
+}
