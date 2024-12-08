@@ -10,7 +10,7 @@ public class ShopManager : MonoBehaviour
     public List<Upgrade> passiveUpgrades = new List<Upgrade>();
     public List<Upgrade> goodPassiveUpgrades = new List<Upgrade>();
     public List<Upgrade> megaClickUpgrades = new List<Upgrade>();
-    public List<Upgrade> rebirthUpgrades = new List<Upgrade>(); // Liste für Rebirth-Upgrades
+    public List<Upgrade> rebirthUpgrades = new List<Upgrade>(); 
     public List<Upgrade> rebirthpassiveUpgrades = new List<Upgrade>();
     public List<Upgrade> rebirthgempassiveUpgrades = new List<Upgrade>();
 
@@ -38,8 +38,8 @@ public class ShopManager : MonoBehaviour
     public Text rebirthPointsText;
 
     // Rebirth Upgrade UI
-    public Button rebirthUpgradeButton; // Button für Rebirth-Upgrade
-    public Text rebirthUpgradeCostText; // Text für die Kosten des Rebirth-Upgrade
+    public Button rebirthUpgradeButton; 
+    public Text rebirthUpgradeCostText; 
 
     public Button rebirthpassiveUpgradeButton;
     public Text rebirthpassiveUpgradeCostsText;
@@ -95,15 +95,15 @@ public class ShopManager : MonoBehaviour
     {
         if (canUpgradeClick)
         {
-            canUpgradeClick = false; // Flag setzen, um weitere Aufrufe zu verhindern
+            canUpgradeClick = false; 
             UpgradeClick();
-            Invoke("ResetClickUpgrade", 0.1f); // Setze das Flag nach einer kurzen Verzögerung zurück
+            Invoke("ResetClickUpgrade", 0.1f); 
         }
     }
 
     private void ResetClickUpgrade()
     {
-        canUpgradeClick = true; // Flag zurücksetzen
+        canUpgradeClick = true; 
     }
 
     private void OnPassiveUpgrade()
