@@ -1,0 +1,640 @@
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections.Generic;
+
+public class ShopManager : MonoBehaviour
+{
+    public static ShopManager Instance;
+
+    public List<Upgrade> clickUpgrades = new List<Upgrade>();
+    public List<Upgrade> passiveUpgrades = new List<Upgrade>();
+    public List<Upgrade> goodPassiveUpgrades = new List<Upgrade>();
+    public List<Upgrade> megaClickUpgrades = new List<Upgrade>();
+    public List<Upgrade> rebirthUpgrades = new List<Upgrade>(); // Liste für Rebirth-Upgrades
+    public List<Upgrade> rebirthpassiveUpgrades = new List<Upgrade>();
+    public List<Upgrade> rebirthgempassiveUpgrades = new List<Upgrade>();
+
+
+
+    // UI-Elemente
+    public Text moneyText;
+    public Button earnMoneyButton;
+
+    public Button clickUpgradeButton;
+    public Text clickUpgradeCostText;
+
+    public Button passiveUpgradeButton;
+    public Text passiveUpgradeCostText;
+
+    public Button goodPassiveUpgradeButton;
+    public Text goodPassiveUpgradeCostText;
+
+    public Button megaClickUpgradeButton;
+    public Text megaClickUpgradeCostText;
+
+    // Rebirth UI
+    public Button rebirthButton;
+    public Text rebirthCostText;
+    public Text rebirthPointsText;
+
+    // Rebirth Upgrade UI
+    public Button rebirthUpgradeButton; // Button für Rebirth-Upgrade
+    public Text rebirthUpgradeCostText; // Text für die Kosten des Rebirth-Upgrade
+
+    public Button rebirthpassiveUpgradeButton;
+    public Text rebirthpassiveUpgradeCostsText;
+
+    public Button rebirthgempassiveUpgradeButton;
+    public Text rebirthgempassiveUpgradeCostText;
+
+
+
+    // Flags zur Verhinderung mehrfacher Aufrufe
+    private bool canUpgradeClick = true;
+    private bool canUpgradePassive = true;
+    private bool canUpgradeGoodPassive = true;
+    private bool canUpgradeMegaClick = true;
+    private bool canUpgradeRebirthPassive = true;
+    private bool canUpgradeRebirthGemPassive = true;
+
+    private void Start()
+    {
+        Instance = this; // Setzen der Singleton-Instanz
+
+        // Verknüpfen der Methoden mit den Buttons
+        earnMoneyButton.onClick.AddListener(EarnMoney);
+        clickUpgradeButton.onClick.AddListener(OnClickUpgrade);
+        passiveUpgradeButton.onClick.AddListener(OnPassiveUpgrade);
+        goodPassiveUpgradeButton.onClick.AddListener(OnGoodPassiveUpgrade);
+        megaClickUpgradeButton.onClick.AddListener(OnMegaClickUpgrade);
+        rebirthButton.onClick.AddListener(OnRebirth); // Rebirth Button
+        rebirthUpgradeButton.onClick.AddListener(UpgradeRebirth);
+        rebirthpassiveUpgradeButton.onClick.AddListener(UpgradePassiveRebirth);
+        rebirthgempassiveUpgradeButton.onClick.AddListener(UpgradeGemPassiveRebirth);
+
+
+        // Starte die automatische Einkommensgenerierung
+        InvokeRepeating(nameof(GeneratePassiveIncome), 5f, 5f);
+        InvokeRepeating(nameof(GenerateGoodPassiveIncome), 3f, 3f);
+        InvokeRepeating(nameof(GenerateRebirthPassiveIncome), 10f, 10f);
+        InvokeRepeating(nameof(GenerateRebirthGemPassiveIncome), 1f, 1f);
+
+        // Füge die Upgrades hinzu und aktualisiere die UI
+        AddUpgrades();
+        UpdateUI();
+    }
+
+    public void EarnMoney()
+    {
+        PlayerData.Instance.money += PlayerData.Instance.GetTotalMoneyPerClick();
+        LevelManager.Instance.AddClick();
+        UpdateUI();
+    }
+
+    private void OnClickUpgrade()
+    {
+        if (canUpgradeClick)
+        {
+            canUpgradeClick = false; // Flag setzen, um weitere Aufrufe zu verhindern
+            UpgradeClick();
+            Invoke("ResetClickUpgrade", 0.1f); // Setze das Flag nach einer kurzen Verzögerung zurück
+        }
+    }
+
+    private void ResetClickUpgrade()
+    {
+        canUpgradeClick = true; // Flag zurücksetzen
+    }
+
+    private void OnPassiveUpgrade()
+    {
+        if (canUpgradePassive)
+        {
+            canUpgradePassive = false;
+            UpgradePassive();
+            Invoke("ResetPassiveUpgrade", 0.1f);
+        }
+    }
+
+    private void ResetPassiveUpgrade()
+    {
+        canUpgradePassive = true;
+    }
+
+    private void OnGoodPassiveUpgrade()
+    {
+        if (canUpgradeGoodPassive)
+        {
+            canUpgradeGoodPassive = false;
+            UpgradeGoodPassive();
+            Invoke("ResetGoodPassiveUpgrade", 0.1f);
+        }
+    }
+
+    private void ResetGoodPassiveUpgrade()
+    {
+        canUpgradeGoodPassive = true;
+    }
+
+    private void OnRebirthPassiveUpgrade()
+    {
+        if (canUpgradeRebirthPassive)
+        {
+            canUpgradeRebirthPassive = false;
+            UpgradePassive();
+            Invoke("ResetRebirthPassiveUpgrade", 0.1f);
+        }
+    }
+    private void ResetRebirthPassiveUpgrade()
+    {
+        canUpgradeRebirthPassive = true;
+    }
+    private void OnRebirthPassiveGemUpgrade()
+    {
+        if (canUpgradeRebirthGemPassive)
+        {
+            canUpgradeRebirthGemPassive = false;
+            UpgradePassive();
+            Invoke("ResetRebirthGemPassiveUpgrade", 0.1f);
+        }
+    }
+    private void ResetRebirthGemPassiveUpgrade()
+    {
+        canUpgradeRebirthGemPassive = true;
+    }
+
+
+    private void OnMegaClickUpgrade()
+    {
+        if (canUpgradeMegaClick)
+        {
+            canUpgradeMegaClick = false;
+            UpgradeMegaClick();
+            Invoke("ResetMegaClickUpgrade", 0.1f);
+        }
+    }
+
+    private void ResetMegaClickUpgrade()
+    {
+        canUpgradeMegaClick = true;
+    }
+
+    public void UpgradeClick()
+    {
+        if (PlayerData.Instance.currentClickUpgradeIndex < clickUpgrades.Count)
+        {
+            Upgrade upgrade = clickUpgrades[PlayerData.Instance.currentClickUpgradeIndex];
+
+            if (PlayerData.Instance.money >= upgrade.cost)
+            {
+                PlayerData.Instance.money -= upgrade.cost;
+                PlayerData.Instance.baseMoneyPerClick += Mathf.FloorToInt(upgrade.effect);
+
+                PlayerData.Instance.currentClickUpgradeIndex++;
+                UpdateUI();
+            }
+            else
+            {
+                Debug.Log("Not enough money for the click upgrade.");
+            }
+        }
+        else
+        {
+            Debug.Log("No more click upgrades available!");
+        }
+    }
+
+
+    public void UpgradePassive()
+    {
+        if (PlayerData.Instance.currentPassiveUpgradeIndex < passiveUpgrades.Count)
+        {
+            Upgrade upgrade = passiveUpgrades[PlayerData.Instance.currentPassiveUpgradeIndex];
+
+            if (PlayerData.Instance.money >= upgrade.cost)
+            {
+                PlayerData.Instance.money -= upgrade.cost;
+                PlayerData.Instance.passiveIncome += Mathf.FloorToInt(upgrade.effect);
+
+                PlayerData.Instance.currentPassiveUpgradeIndex++;
+                UpdateUI();
+            }
+            else
+            {
+                Debug.Log("Not enough money for the passive upgrade.");
+            }
+        }
+        else
+        {
+            Debug.Log("No more passive upgrades available!");
+        }
+    }
+
+    public void UpgradeGoodPassive()
+    {
+        if (PlayerData.Instance.currentGoodPassiveUpgradeIndex < goodPassiveUpgrades.Count)
+        {
+            Upgrade upgrade = goodPassiveUpgrades[PlayerData.Instance.currentGoodPassiveUpgradeIndex];
+
+            if (PlayerData.Instance.money >= upgrade.cost)
+            {
+                PlayerData.Instance.money -= upgrade.cost;
+                PlayerData.Instance.goodPassiveIncome += Mathf.FloorToInt(upgrade.effect);
+
+                PlayerData.Instance.currentGoodPassiveUpgradeIndex++;
+                UpdateUI();
+            }
+            else
+            {
+                Debug.Log("Not enough money for the good passive upgrade.");
+            }
+        }
+        else
+        {
+            Debug.Log("No more good passive upgrades available!");
+        }
+    }
+    public void UpgradePassiveRebirth()
+    {
+        if (PlayerData.Instance.currentRebirthPassiveUpgradeIndex < rebirthpassiveUpgrades.Count)
+        {
+            Upgrade upgrade = rebirthpassiveUpgrades[PlayerData.Instance.currentRebirthPassiveUpgradeIndex];
+
+            if (PlayerData.Instance.rebirthPoints >= upgrade.cost)
+            {
+                PlayerData.Instance.rebirthPoints -= upgrade.cost;
+                PlayerData.Instance.passiverebirthIncome += Mathf.FloorToInt(upgrade.effect);
+
+                PlayerData.Instance.currentRebirthPassiveUpgradeIndex++;
+                UpdateUI();
+            }
+            else
+            {
+                Debug.Log("Not enough rebirth points for the rebirth passive upgrade.");
+            }
+        }
+        else
+        {
+            Debug.Log("No more rebirth passive upgrades available!");
+        }
+    }
+
+    public void UpgradeGemPassiveRebirth()
+    {
+        if (PlayerData.Instance.currentRebirthGemPassiveUpgradeIndex < rebirthgempassiveUpgrades.Count)
+        {
+            Upgrade upgrade = rebirthgempassiveUpgrades[PlayerData.Instance.currentRebirthGemPassiveUpgradeIndex];
+
+            if (PlayerData.Instance.rebirthPoints >= upgrade.cost)
+            {
+                PlayerData.Instance.rebirthPoints -= upgrade.cost;
+                PlayerData.Instance.rebirthgempassiveIncome += Mathf.FloorToInt(upgrade.effect);
+
+                PlayerData.Instance.currentRebirthGemPassiveUpgradeIndex++;
+                UpdateUI();
+            }
+            else
+            {
+                Debug.Log("Not enough rebirth points for the gem rebirth passive upgrade.");
+            }
+        }
+        else
+        {
+            Debug.Log("No more gem rebirth passive upgrades available!");
+        }
+    }
+    public void UpgradeMegaClick()
+    {
+        if (PlayerData.Instance.currentMegaClickUpgradeIndex < megaClickUpgrades.Count)
+        {
+            Upgrade upgrade = megaClickUpgrades[PlayerData.Instance.currentMegaClickUpgradeIndex];
+
+            if (PlayerData.Instance.money >= upgrade.cost)
+            {
+                PlayerData.Instance.money -= upgrade.cost;
+                PlayerData.Instance.baseMoneyPerClick += Mathf.FloorToInt(upgrade.effect);
+
+                PlayerData.Instance.currentMegaClickUpgradeIndex++;
+                UpdateUI();
+            }
+            else
+            {
+                Debug.Log("Not enough money for the mega click upgrade.");
+            }
+        }
+        else
+        {
+            Debug.Log("No more mega click upgrades available!");
+        }
+    }
+
+    private void GeneratePassiveIncome()
+    {
+        if (PlayerData.Instance.passiveIncome > 0)
+        {
+            PlayerData.Instance.money += PlayerData.Instance.passiveIncome;
+            UpdateUI();
+        }
+    }
+
+    private void GenerateGoodPassiveIncome()
+    {
+        if (PlayerData.Instance.goodPassiveIncome > 0)
+        {
+            PlayerData.Instance.money += PlayerData.Instance.goodPassiveIncome;
+            UpdateUI();
+        }
+    }
+    private void GenerateRebirthPassiveIncome()
+    {
+        if (PlayerData.Instance.passiverebirthIncome > 0)
+        {
+            PlayerData.Instance.money += PlayerData.Instance.passiverebirthIncome;
+            UpdateUI();
+        }
+    }
+    private void GenerateRebirthGemPassiveIncome()
+    {
+        if (PlayerData.Instance.rebirthgempassiveIncome > 0)
+        {
+            PlayerData.Instance.gems += PlayerData.Instance.rebirthgempassiveIncome;
+            UpdateUI();
+        }
+    }
+
+
+    private void OnRebirth()
+    {
+        int baseRebirthPointsEarned = Mathf.FloorToInt(PlayerData.Instance.money / 5000f);
+
+        // Berechne die effektiven Rebirth-Punkte basierend auf dem Multiplikator
+        int rebirthPointsEarned = PlayerData.Instance.GetTotalRebirthPoints(baseRebirthPointsEarned);
+
+        if (rebirthPointsEarned > 0)
+        {
+            PlayerData.Instance.rebirthPoints += rebirthPointsEarned;
+            PlayerData.Instance.ResetPlayerData();
+
+            UpdateUI();
+        }
+        else
+        {
+            Debug.Log("Not enough money for rebirth.");
+        }
+    }
+
+    public void UpgradeRebirth()
+    {
+        if (PlayerData.Instance.currentRebirthUpgradeIndex < rebirthUpgrades.Count)
+        {
+            Upgrade upgrade = rebirthUpgrades[PlayerData.Instance.currentRebirthUpgradeIndex];
+
+            if (PlayerData.Instance.rebirthPoints >= upgrade.cost)
+            {
+                PlayerData.Instance.rebirthPoints -= upgrade.cost;
+                PlayerData.Instance.rebirthBonusMoneyPerClick += Mathf.FloorToInt(upgrade.effect);
+
+                PlayerData.Instance.currentRebirthUpgradeIndex++;
+                UpdateUI();
+            }
+            else
+            {
+                Debug.Log("Not enough Rebirth Points for the rebirth upgrade.");
+            }
+        }
+        else
+        {
+            Debug.Log("No more rebirth upgrades available.");
+        }
+    }
+
+
+
+    private void ResetPlayerData()
+    {
+
+        PlayerData.Instance.baseMoneyPerClick = 1; // Zurücksetzen auf den Startwert
+        PlayerData.Instance.currentClickUpgradeIndex = 0;
+        PlayerData.Instance.currentPassiveUpgradeIndex = 0;
+        PlayerData.Instance.currentGoodPassiveUpgradeIndex = 0;
+        PlayerData.Instance.currentMegaClickUpgradeIndex = 0;
+        PlayerData.Instance.passiveIncome = 0;
+        PlayerData.Instance.goodPassiveIncome = 0;
+
+        // Rebith-Bonus bleibt unverändert
+    }
+
+
+    private void UpdateUI()
+    {
+        moneyText.text = $"Money: {PlayerData.Instance.money} €";
+        int totalRebirthPoints = PlayerData.Instance.GetTotalRebirthPoints(PlayerData.Instance.baseRebirthPoints); // Berechne die totalen Rebirth-Punkte
+        rebirthPointsText.text = $"Rebirth Points: {totalRebirthPoints}";
+
+        // Update den Button und die Kosten für Klick-Upgrades
+        if (PlayerData.Instance.currentClickUpgradeIndex < clickUpgrades.Count)
+        {
+            Upgrade clickUpgrade = clickUpgrades[PlayerData.Instance.currentClickUpgradeIndex];
+            clickUpgradeCostText.text = $"Cost: {clickUpgrade.cost} € + {clickUpgrade.effect} money per click";
+        }
+        else
+        {
+            clickUpgradeCostText.text = "Max upgrades reached";
+            clickUpgradeButton.interactable = false;
+        }
+
+        // Update den Button und die Kosten für passive Upgrades
+        if (PlayerData.Instance.currentPassiveUpgradeIndex < passiveUpgrades.Count)
+        {
+            Upgrade passiveUpgrade = passiveUpgrades[PlayerData.Instance.currentPassiveUpgradeIndex];
+            passiveUpgradeCostText.text = $"Cost: {passiveUpgrade.cost} € + {passiveUpgrade.effect} money every 5 seconds";
+        }
+        else
+        {
+            passiveUpgradeCostText.text = "Max upgrades reached";
+            passiveUpgradeButton.interactable = false;
+        }
+
+        // Update den Button und die Kosten für gute passive Upgrades
+        if (PlayerData.Instance.currentGoodPassiveUpgradeIndex < goodPassiveUpgrades.Count)
+        {
+            Upgrade goodPassiveUpgrade = goodPassiveUpgrades[PlayerData.Instance.currentGoodPassiveUpgradeIndex];
+            goodPassiveUpgradeCostText.text = $"Cost: {goodPassiveUpgrade.cost} € + {goodPassiveUpgrade.effect} money every 3 seconds";
+        }
+        else
+        {
+            goodPassiveUpgradeCostText.text = "Max upgrades reached";
+            goodPassiveUpgradeButton.interactable = false;
+        }
+
+        // Update den Button und die Kosten für Mega Click Upgrades
+        if (PlayerData.Instance.currentMegaClickUpgradeIndex < megaClickUpgrades.Count)
+        {
+            Upgrade megaClickUpgrade = megaClickUpgrades[PlayerData.Instance.currentMegaClickUpgradeIndex];
+            megaClickUpgradeCostText.text = $"Cost: {megaClickUpgrade.cost} € + {megaClickUpgrade.effect} money per click";
+        }
+        else
+        {
+            megaClickUpgradeCostText.text = "Max upgrades reached";
+            megaClickUpgradeButton.interactable = false;
+        }
+
+        // Update Rebirth Button
+        rebirthCostText.text = "Rebirth: Requires 5000 € or more";
+        rebirthButton.interactable = PlayerData.Instance.money >= 5000;
+        rebirthPointsText.text = $"Rebirth Points: {PlayerData.Instance.rebirthPoints}"; // Zeigt die Rebirth-Punkte an
+
+        // Update den Button und die Kosten für Rebirth Upgrades
+        if (PlayerData.Instance.currentRebirthUpgradeIndex < rebirthUpgrades.Count)
+        {
+            Upgrade rebirthUpgrade = rebirthUpgrades[PlayerData.Instance.currentRebirthUpgradeIndex];
+            rebirthUpgradeCostText.text = $"Cost: {rebirthUpgrade.cost} Rebirth Points + {rebirthUpgrade.effect} money per click";
+            rebirthUpgradeButton.interactable = true; // Button aktivieren
+        }
+        else
+        {
+            rebirthUpgradeCostText.text = "Max upgrades reached";
+            rebirthUpgradeButton.interactable = false; // Button deaktivieren
+        }
+
+        if (PlayerData.Instance.currentRebirthPassiveUpgradeIndex < rebirthpassiveUpgrades.Count)
+        {
+            Upgrade passiverebirthUpgrade = rebirthpassiveUpgrades[PlayerData.Instance.currentRebirthPassiveUpgradeIndex];
+            rebirthpassiveUpgradeCostsText.text = $"Cost: {passiverebirthUpgrade.cost} Rebirth Points + {passiverebirthUpgrade.effect} money every 10 seconds";
+            rebirthpassiveUpgradeButton.interactable = true; // Button aktivieren
+        }
+        else
+        {
+            rebirthpassiveUpgradeCostsText.text = "Max upgrades reached";
+            rebirthpassiveUpgradeButton.interactable = false; // Button deaktivieren
+        }
+        if (PlayerData.Instance.currentRebirthGemPassiveUpgradeIndex < rebirthgempassiveUpgrades.Count)
+        {
+            Upgrade passiverebirthUpgrade = rebirthgempassiveUpgrades[PlayerData.Instance.currentRebirthGemPassiveUpgradeIndex];
+            rebirthgempassiveUpgradeCostText.text = $"Cost: {passiverebirthUpgrade.cost} Rebirth Points + {passiverebirthUpgrade.effect} gems every second";
+            rebirthgempassiveUpgradeButton.interactable = true; // Button aktivieren
+        }
+        else
+        {
+            rebirthgempassiveUpgradeCostText.text = "Max upgrades reached";
+            rebirthgempassiveUpgradeButton.interactable = false; // Button deaktivieren
+        }
+
+
+    }
+
+
+
+    private void AddUpgrades()
+    {
+        clickUpgrades.Add(new Upgrade(5, 1));
+        clickUpgrades.Add(new Upgrade(30, 1));
+        clickUpgrades.Add(new Upgrade(80, 1));
+        clickUpgrades.Add(new Upgrade(180, 1));
+        clickUpgrades.Add(new Upgrade(320, 2));
+        clickUpgrades.Add(new Upgrade(650, 2));
+        clickUpgrades.Add(new Upgrade(1000, 2));
+        clickUpgrades.Add(new Upgrade(1500, 2));
+        clickUpgrades.Add(new Upgrade(2000, 3));
+        clickUpgrades.Add(new Upgrade(2300, 3));
+        clickUpgrades.Add(new Upgrade(2800, 3));
+        clickUpgrades.Add(new Upgrade(3700, 4));
+        clickUpgrades.Add(new Upgrade(4300, 4));
+        clickUpgrades.Add(new Upgrade(5300, 4));
+        clickUpgrades.Add(new Upgrade(6500, 4));
+        clickUpgrades.Add(new Upgrade(7600, 5));
+        clickUpgrades.Add(new Upgrade(8900, 5));
+        clickUpgrades.Add(new Upgrade(10000, 5));
+        clickUpgrades.Add(new Upgrade(11000, 5));
+        clickUpgrades.Add(new Upgrade(12500, 5));
+        clickUpgrades.Add(new Upgrade(14500, 5));
+        clickUpgrades.Add(new Upgrade(18500, 8));
+
+        passiveUpgrades.Add(new Upgrade(30, 15));
+        passiveUpgrades.Add(new Upgrade(50, 8));
+        passiveUpgrades.Add(new Upgrade(80, 8));
+        passiveUpgrades.Add(new Upgrade(200, 8));
+        passiveUpgrades.Add(new Upgrade(450, 8));
+        passiveUpgrades.Add(new Upgrade(720, 8));
+        passiveUpgrades.Add(new Upgrade(1000, 8));
+        passiveUpgrades.Add(new Upgrade(1350, 8));
+        passiveUpgrades.Add(new Upgrade(1950, 8));
+        passiveUpgrades.Add(new Upgrade(2350, 8));
+        passiveUpgrades.Add(new Upgrade(2800, 8));
+        passiveUpgrades.Add(new Upgrade(3300, 8));
+        passiveUpgrades.Add(new Upgrade(3800, 8));
+        passiveUpgrades.Add(new Upgrade(4300, 8));
+        passiveUpgrades.Add(new Upgrade(6000, 8));
+        passiveUpgrades.Add(new Upgrade(7200, 9));
+        passiveUpgrades.Add(new Upgrade(8900, 9));
+        passiveUpgrades.Add(new Upgrade(9800, 9));
+        passiveUpgrades.Add(new Upgrade(10800, 9));
+        passiveUpgrades.Add(new Upgrade(12500, 10));
+
+        goodPassiveUpgrades.Add(new Upgrade(180, 15));
+        goodPassiveUpgrades.Add(new Upgrade(320, 6));
+        goodPassiveUpgrades.Add(new Upgrade(450, 6));
+        goodPassiveUpgrades.Add(new Upgrade(750, 6));
+        goodPassiveUpgrades.Add(new Upgrade(1200, 6));
+        goodPassiveUpgrades.Add(new Upgrade(1600, 7));
+        goodPassiveUpgrades.Add(new Upgrade(2000, 7));
+        goodPassiveUpgrades.Add(new Upgrade(2500, 7));
+        goodPassiveUpgrades.Add(new Upgrade(2500, 7));
+        goodPassiveUpgrades.Add(new Upgrade(3500, 7));
+        goodPassiveUpgrades.Add(new Upgrade(4500, 7));
+        goodPassiveUpgrades.Add(new Upgrade(6000, 7));
+        goodPassiveUpgrades.Add(new Upgrade(8000, 7));
+        goodPassiveUpgrades.Add(new Upgrade(12000, 9));
+
+        megaClickUpgrades.Add(new Upgrade(1250, 3));
+        megaClickUpgrades.Add(new Upgrade(1900, 3));
+        megaClickUpgrades.Add(new Upgrade(2250, 4));
+        megaClickUpgrades.Add(new Upgrade(2700, 4));
+        megaClickUpgrades.Add(new Upgrade(3600, 5));
+        megaClickUpgrades.Add(new Upgrade(4000, 5));
+        megaClickUpgrades.Add(new Upgrade(4200, 5));
+        megaClickUpgrades.Add(new Upgrade(4700, 6));
+        megaClickUpgrades.Add(new Upgrade(5100, 6));
+        megaClickUpgrades.Add(new Upgrade(7100, 6));
+        megaClickUpgrades.Add(new Upgrade(9500, 7));
+        megaClickUpgrades.Add(new Upgrade(12500, 7));
+        megaClickUpgrades.Add(new Upgrade(15600, 7));
+        megaClickUpgrades.Add(new Upgrade(19600, 7));
+        megaClickUpgrades.Add(new Upgrade(23600, 7));
+
+        rebirthUpgrades.Add(new Upgrade(1, 3));  // Kostet Rebith Punkte gibt Clicks
+        rebirthUpgrades.Add(new Upgrade(1, 5));  // Kostet Rebith Punkte gibt Clicks
+        rebirthUpgrades.Add(new Upgrade(2, 6));  // Kostet Rebith Punkte gibt Clicks
+        rebirthUpgrades.Add(new Upgrade(3, 6)); // Kostet Rebith Punkte gibt Clicks
+        rebirthUpgrades.Add(new Upgrade(5, 8)); // Kostet Rebith Punkte gibt Clicks
+        rebirthUpgrades.Add(new Upgrade(10, 10)); // Kostet Rebith Punkte gibt Clicks
+        rebirthUpgrades.Add(new Upgrade(15, 10)); // Kostet Rebith Punkte gibt Clicks
+
+        rebirthpassiveUpgrades.Add(new Upgrade(1, 250));
+        rebirthpassiveUpgrades.Add(new Upgrade(3, 150));
+        rebirthpassiveUpgrades.Add(new Upgrade(3, 150));
+        rebirthpassiveUpgrades.Add(new Upgrade(6, 200));
+
+        rebirthgempassiveUpgrades.Add(new Upgrade(3, 5)); //Auto Gems(Costs Rebirth Points)
+        rebirthgempassiveUpgrades.Add(new Upgrade(5, 5)); //Auto Gems(Costs Rebirth Points)
+        rebirthgempassiveUpgrades.Add(new Upgrade(7, 5)); //Auto Gems(Costs Rebirth Points)
+
+
+
+
+    }
+}
+// Upgrade-Klasse
+[System.Serializable]
+
+public class Upgrade
+{
+    public int cost; // Kosten des Upgrades
+    public int effect; // Effekt des Upgrades
+
+    public Upgrade(int cost, int effect)
+    {
+        this.cost = cost;
+        this.effect = effect;
+    }
+}
