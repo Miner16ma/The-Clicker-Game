@@ -1,0 +1,85 @@
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections.Generic;
+
+public class LevelManager : MonoBehaviour
+{
+    public static LevelManager Instance;
+
+    // UI Elemente
+    public Text levelText;  // Anzeige des aktuellen Levels
+    public Text skillPointsText;  // Anzeige der Skill Points
+    public Text clicksToNextLevelText;  // Zeigt an, wie viele Klicks für den nächsten Level nötig sind
+
+
+    // Klick-Anforderungen für Levelaufstieg
+    private int[] clickRequirements = { 10, 40, 90, 160, 280, 450, 600, 800, 1100, 1500, 2000, 2500 };  // Definierte Klick-Anforderungen
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+    }
+
+    private void Start()
+    {
+        UpdateUI();  // Aktualisiere die UI beim Start
+    }
+
+   private void CheckLevelUp()
+{
+    if (PlayerData.Instance.playerLevel - 1 < clickRequirements.Length)
+    {
+        if (PlayerData.Instance.currentClicks >= clickRequirements[(int)PlayerData.Instance.playerLevel - 1])
+        {
+            PlayerData.Instance.playerLevel++;  // Erhöhe das Level des Spielers
+            PlayerData.Instance.skillPoints++;  // Gewähre einen Skill Point
+            PlayerData.Instance.currentClicks = 0;  // Setze die Klickanzahl zurück
+
+            PlayerData.Instance.SavePlayerData(); // Speichere die Änderungen
+            Debug.Log("Level Up! Neues Level: " + PlayerData.Instance.playerLevel);
+        }
+    }
+    else
+    {
+        Debug.Log("Maximallevel erreicht.");
+    }
+}
+
+// Methode zum Hinzufügen von Klicks
+public void AddClick()
+{
+    PlayerData.Instance.currentClicks++;
+    CheckLevelUp();  // Überprüfe auf Levelaufstieg
+    PlayerData.Instance.SavePlayerData();  // Speichere die Klickanzahl
+    UpdateUI();  // Aktualisiere die UI
+}
+
+    private void UpdateUI()
+    {
+        // Aktualisiere das Level und die Skill Points mit den Werten aus PlayerData.Instance
+        levelText.text = "Level: " + PlayerData.Instance.playerLevel;
+        skillPointsText.text = "Skill Points: " + PlayerData.Instance.skillPoints;
+
+        // Überprüfen, ob das Spielerlevel innerhalb der Click Requirements bleibt
+        if (PlayerData.Instance.playerLevel - 1 < clickRequirements.Length)
+        {
+            // Zeigt die verbleibenden Klicks zum nächsten Level
+            clicksToNextLevelText.text = "Clicks to next level: " +
+                (clickRequirements[(int)PlayerData.Instance.playerLevel - 1] - PlayerData.Instance.currentClicks);
+        }
+        else
+        {
+            clicksToNextLevelText.text = "Max Level erreicht!";
+        }
+    }
+
+
+    // Methode, um die Klick-Anforderungen für zukünftige Level zu ändern oder hinzuzufügen
+    public void SetClickRequirements(int[] newClickRequirements)
+    {
+        clickRequirements = newClickRequirements;
+    }
+}
