@@ -1,0 +1,25 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class ResetButton : MonoBehaviour
+{
+    public Button resetButton; 
+
+    private void Start()
+    {
+        
+        resetButton.onClick.AddListener(OnResetButtonClicked);
+    }
+
+    private void OnResetButtonClicked()
+    {
+        PlayerData.Instance.ResetData();
+
+        UpdateUI();
+    }
+
+    private void UpdateUI()
+    {
+        
+    }
+}
