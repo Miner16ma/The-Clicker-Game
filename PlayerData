@@ -1,0 +1,303 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+public class PlayerData : MonoBehaviour
+{
+
+    public static PlayerData Instance { get; private set; }
+
+    public float money = 0; // Aktuelles Geld des Spielers
+    public float baseMoneyPerClick = 1; 
+    public float rebirthBonusMoneyPerClick = 0; 
+    public float passiveIncome = 0; 
+    public float goodPassiveIncome = 0; 
+    public float passiverebirthIncome = 0;
+    public int rebirthPoints = 0; 
+    public int baseRebirthPoints = 0;
+    public int gemPrestigeLevel = 0; 
+    public float gemPrestigeMoneyMultiplier = 1; 
+    public float rebirthPointMultiplier = 1; 
+    public float gemMutiplier = 1;
+    public float rebirthgempassiveIncome = 0;
+
+
+    public int currentClickUpgradeIndex = 0; // Aktueller Index für Klick-Upgrades
+    public int currentPassiveUpgradeIndex = 0; // Aktueller Index für passive Upgrades
+    public int currentGoodPassiveUpgradeIndex = 0; // Aktueller Index für gute passive Upgrades
+    public int currentMegaClickUpgradeIndex = 0; // Aktueller Index für Mega-Click-Upgrades
+    public int currentRebirthUpgradeIndex = 0;
+    public int currentRebirthPassiveUpgradeIndex = 0;
+    public int currentRebirthGemPassiveUpgradeIndex = 0;
+
+    public bool isGemAreaUnlocked = false;
+
+    public float playerLevel = 1;
+    public float skillPoints = 0;
+    public float currentClicks = 0;
+    public int bonusMoneyPerClick = 0;
+
+    public int clickCounter = 0;
+
+    //Gem Sachen
+    public float gems = 0; // Anzahl der gespeicherten Gems
+    public float baseGemsPerClick = 1;
+
+    public int currentGemUpgradeIndex = 0;
+
+    public float GetTotalMoneyPerClick()
+    {
+        return baseMoneyPerClick * gemPrestigeMoneyMultiplier + rebirthBonusMoneyPerClick * gemPrestigeMoneyMultiplier + bonusMoneyPerClick * gemPrestigeMoneyMultiplier;
+    }
+    public float GetTotalGemsPerClick()
+    {
+        return baseGemsPerClick * gemMutiplier;
+    }
+    public int GetTotalRebirthPoints(int basePoints)
+    {
+        return Mathf.FloorToInt(basePoints * rebirthPointMultiplier); // Multipliziere die Basis-Rebirth-Punkte mit dem Multiplikator
+    }
+
+
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this; // Singleton-Instanz setzen
+            LoadPlayerData(); // Lade die Spielerdaten
+        }
+        else
+        {
+            Destroy(gameObject); // Zerstöre das Duplikat
+        }
+
+        DontDestroyOnLoad(gameObject); // Behalte PlayerData über Szenen hinweg
+    }
+
+    private void OnApplicationQuit()
+    {
+        SavePlayerData(); // Speichere die Spielerdaten beim Verlassen des Spiels
+    }
+
+
+    private void InitializePlayerData()
+    {
+        // Initialisiere Werte, wenn der Spieler noch kein Geld hat
+        money = 1;
+        gems = 0;
+        baseMoneyPerClick = 1; // Grundwert von Geld pro Klick, das durch normale Upgrades erhöht wird
+        rebirthBonusMoneyPerClick = 0; // Bonus von Rebirth-Upgrades, der nicht zurückgesetzt wird
+        passiveIncome = 0;
+        goodPassiveIncome = 0;
+        gemPrestigeLevel = 0;
+        gemPrestigeMoneyMultiplier = 1;
+        rebirthPointMultiplier = 0;
+        gemMutiplier = 1;
+
+        currentClickUpgradeIndex = 0;
+        currentPassiveUpgradeIndex = 0;
+        currentGoodPassiveUpgradeIndex = 0;
+        currentMegaClickUpgradeIndex = 0;
+        currentRebirthUpgradeIndex = 0;
+        currentRebirthPassiveUpgradeIndex = 0;
+        currentGemUpgradeIndex = 0;
+        currentRebirthGemPassiveUpgradeIndex = 0;
+        rebirthgempassiveIncome = 0;
+        playerLevel = 1;
+        currentClicks = 0;
+        skillPoints = 0;
+        bonusMoneyPerClick = 0;
+        clickCounter = 0;
+
+    }
+
+    // Methode zum Speichern der Daten
+    public void SaveData()
+    {
+        PlayerPrefs.SetFloat("Money", money);
+        PlayerPrefs.SetFloat("Gems", gems);
+        PlayerPrefs.SetFloat("BaseMoneyPerClick", baseMoneyPerClick);
+        PlayerPrefs.SetFloat("RebirthBonusMoneyPerClick", rebirthBonusMoneyPerClick);
+        PlayerPrefs.SetFloat("PassiveIncome", passiveIncome);
+        PlayerPrefs.SetFloat("GoodPassiveIncome", goodPassiveIncome);
+        PlayerPrefs.SetInt("CurrentClickUpgradeIndex", currentClickUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentPassiveUpgradeIndex", currentPassiveUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentGoodPassiveUpgradeIndex", currentGoodPassiveUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentMegaClickUpgradeIndex", currentMegaClickUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentRebirthPassiveUpgradeIndex", currentRebirthUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentGemUpgradeIndex", currentGemUpgradeIndex);
+        PlayerPrefs.SetInt("GemPrestigeLevel", gemPrestigeLevel);
+        PlayerPrefs.SetFloat("GemPrestigeMoneyMultiplier", gemPrestigeMoneyMultiplier);
+        PlayerPrefs.SetFloat("RebirthPointMultiplier", rebirthPointMultiplier);
+        PlayerPrefs.SetFloat("GemMultiplier", gemMutiplier);
+        PlayerPrefs.SetFloat("CurrentRebirthGemPassiveUpgradeIndex", currentRebirthGemPassiveUpgradeIndex);
+        PlayerPrefs.SetFloat("RebirthGemPassiveIncome", rebirthgempassiveIncome);
+        PlayerPrefs.SetInt("GemAreaUnlocked", isGemAreaUnlocked ? 1 : 0);
+        PlayerPrefs.SetFloat("PlayerLevel", playerLevel);
+        PlayerPrefs.SetFloat("currentClicks", currentClicks);
+        PlayerPrefs.SetFloat("skillPoints", skillPoints);
+        PlayerPrefs.SetInt("BonusMoneyPerClick", bonusMoneyPerClick);
+        PlayerPrefs.SetInt("ClickCounter", clickCounter);
+
+        PlayerPrefs.Save();
+    }
+    public void SavePlayerData()
+    {
+        PlayerPrefs.SetFloat("Money", (int)money);
+        PlayerPrefs.SetFloat("Gems", (int)gems);
+        PlayerPrefs.SetFloat("BaseMoneyPerClick", (int)baseMoneyPerClick);
+        PlayerPrefs.SetFloat("RebirthBonusMoneyPerClick", (int)rebirthBonusMoneyPerClick);
+        PlayerPrefs.SetFloat("PassiveIncome", passiveIncome);
+        PlayerPrefs.SetFloat("GoodPassiveIncome", goodPassiveIncome);
+        PlayerPrefs.SetFloat("RebirthPassiveIncome", passiverebirthIncome);
+        PlayerPrefs.SetFloat("CurrentRebirthPassiveUpgradeIndex", currentRebirthPassiveUpgradeIndex);
+        PlayerPrefs.SetInt("RebirthPoints", rebirthPoints);
+        PlayerPrefs.SetInt("CurrentClickUpgradeIndex", currentClickUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentPassiveUpgradeIndex", currentPassiveUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentGoodPassiveUpgradeIndex", currentGoodPassiveUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentMegaClickUpgradeIndex", currentMegaClickUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentRebirthUpgradeIndex", currentRebirthUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentRebirthPassiveUpgradeIndex", currentRebirthUpgradeIndex);
+        PlayerPrefs.SetInt("CurrentGemUpgradeIndex", currentGemUpgradeIndex);
+        PlayerPrefs.SetInt("GemPrestigeLevel", gemPrestigeLevel);
+        PlayerPrefs.SetFloat("GemPrestigeMoneyMultiplier", gemPrestigeMoneyMultiplier);
+        PlayerPrefs.SetFloat("RebirthPointMultiplier", rebirthPointMultiplier);
+        PlayerPrefs.SetFloat("GemMultiplier", gemMutiplier);
+        PlayerPrefs.SetFloat("CurrentRebirthGemPassiveUpgradeIndex", currentRebirthGemPassiveUpgradeIndex);
+        PlayerPrefs.SetFloat("RebirthGemPassiveIncome", rebirthgempassiveIncome);
+        PlayerPrefs.SetInt("GemAreaUnlocked", isGemAreaUnlocked ? 1 : 0);
+        PlayerPrefs.SetFloat("PlayerLevel", playerLevel);
+        PlayerPrefs.SetFloat("currentClicks", currentClicks);
+        PlayerPrefs.SetFloat("skillPoints", skillPoints);
+        PlayerPrefs.SetInt("BonusMoneyPerClick", bonusMoneyPerClick);
+        PlayerPrefs.SetInt("ClickCounter", clickCounter);
+
+
+
+        PlayerPrefs.Save();
+    }
+
+
+    public void LoadPlayerData()
+    {
+        money = PlayerPrefs.GetFloat("Money", 0f);
+        gems = PlayerPrefs.GetFloat("Gems", 0f);
+        baseMoneyPerClick = PlayerPrefs.GetFloat("BaseMoneyPerClick", 1);
+        rebirthBonusMoneyPerClick = PlayerPrefs.GetFloat("RebirthBonusMoneyPerClick", 0);
+        passiveIncome = PlayerPrefs.GetFloat("PassiveIncome", passiveIncome);
+        goodPassiveIncome = PlayerPrefs.GetFloat("GoodPassiveIncome", goodPassiveIncome);
+        passiverebirthIncome = PlayerPrefs.GetFloat("RebirthPassiveIncome", passiverebirthIncome);
+        rebirthPoints = PlayerPrefs.GetInt("RebirthPoints", 0);
+        currentClickUpgradeIndex = PlayerPrefs.GetInt("CurrentClickUpgradeIndex", 0);
+        currentPassiveUpgradeIndex = PlayerPrefs.GetInt("CurrentPassiveUpgradeIndex", 0);
+        currentGoodPassiveUpgradeIndex = PlayerPrefs.GetInt("CurrentGoodPassiveUpgradeIndex", 0);
+        currentMegaClickUpgradeIndex = PlayerPrefs.GetInt("CurrentMegaClickUpgradeIndex", 0);
+        currentRebirthUpgradeIndex = PlayerPrefs.GetInt("CurrentRebirthUpgradeIndex", 0);
+        currentRebirthPassiveUpgradeIndex = PlayerPrefs.GetInt("CurrentRebirthPassiveUpgradeIndex", 0);
+        currentGemUpgradeIndex = PlayerPrefs.GetInt("CurrentGemUpgradeIndex", 0);
+        gemPrestigeLevel = PlayerPrefs.GetInt("GemPrestigeLevel", 0);
+        gemPrestigeMoneyMultiplier = PlayerPrefs.GetFloat("GemPrestigeMoneyMultiplier", 1);
+        rebirthPointMultiplier = PlayerPrefs.GetFloat("RebirthPointMultiplier", 0);
+        gemMutiplier = PlayerPrefs.GetFloat("GemMultiplier", 1);
+        currentRebirthGemPassiveUpgradeIndex = PlayerPrefs.GetInt("CurrentRebirthGemPassiveUpgradeIndex", 0);
+        rebirthgempassiveIncome = PlayerPrefs.GetFloat("RebirthGemPassiveIncome", 0);
+        isGemAreaUnlocked = PlayerPrefs.GetInt("GemAreaUnlocked", 0) == 1;
+        playerLevel = PlayerPrefs.GetFloat("PlayerLevel", 1);
+        currentClicks = PlayerPrefs.GetFloat("currentClicks", 0);
+        skillPoints = PlayerPrefs.GetFloat("skillPoints", 0);
+        bonusMoneyPerClick = PlayerPrefs.GetInt("BonusMoneyPerClick", 0);
+        clickCounter = PlayerPrefs.GetInt("ClickCounter", 0);
+
+    }
+
+
+
+    // Methode zum Laden der Daten
+    public void LoadData()
+    {
+        money = PlayerPrefs.GetFloat("Money", 0f);
+        gems = PlayerPrefs.GetFloat("Gems", 0f);
+        baseMoneyPerClick = PlayerPrefs.GetFloat("baseMoneyPerClick", 1f);
+        rebirthBonusMoneyPerClick = PlayerPrefs.GetFloat("RebirthBonusMoneyPerClick", 0f);
+        passiveIncome = PlayerPrefs.GetFloat("PassiveIncome", 0f);
+        goodPassiveIncome = PlayerPrefs.GetFloat("GoodPassiveIncome", 0f);
+
+        currentClickUpgradeIndex = PlayerPrefs.GetInt("CurrentClickUpgradeIndex", 0);
+        currentPassiveUpgradeIndex = PlayerPrefs.GetInt("CurrentPassiveUpgradeIndex", 0);
+        currentGoodPassiveUpgradeIndex = PlayerPrefs.GetInt("CurrentGoodPassiveUpgradeIndex", 0);
+        currentMegaClickUpgradeIndex = PlayerPrefs.GetInt("CurrentMegaClickUpgradeIndex", 0);
+        currentRebirthUpgradeIndex = PlayerPrefs.GetInt("CurrentRebirthPassiveUpgradeIndex", 0);
+        currentRebirthPassiveUpgradeIndex = PlayerPrefs.GetInt("CurrentRebirthPassiveUpgradeIndex", 0);
+        currentGemUpgradeIndex = PlayerPrefs.GetInt("CurrentGemUpgradeIndex", 0);
+        gemPrestigeLevel = PlayerPrefs.GetInt("GemPrestigeLevel", 0);
+        gemPrestigeMoneyMultiplier = PlayerPrefs.GetFloat("GemPrestigeMoneyMultiplier", 1);
+        rebirthPointMultiplier = PlayerPrefs.GetFloat("RebirthPointMultiplier", 0);
+        gemMutiplier = PlayerPrefs.GetFloat("GemMultiplier", 1);
+        currentRebirthGemPassiveUpgradeIndex = PlayerPrefs.GetInt("CurrentRebirthGemPassiveUpgradeIndex", 0);
+        rebirthgempassiveIncome = PlayerPrefs.GetFloat("RebirthGemPassiveIncome", 0);
+        isGemAreaUnlocked = PlayerPrefs.GetInt("GemAreaUnlocked", 0) == 1;
+        isGemAreaUnlocked = PlayerPrefs.GetInt("GemAreaUnlocked", 0) == 1;
+        playerLevel = PlayerPrefs.GetFloat("PlayerLevel", 1);
+        currentClicks = PlayerPrefs.GetFloat("currentClicks", 0);
+        skillPoints = PlayerPrefs.GetFloat("skillPoints", 0);
+        bonusMoneyPerClick = PlayerPrefs.GetInt("BonusMoneyPerClick", 0);
+        clickCounter = PlayerPrefs.GetInt("ClickCounter", 0);
+
+
+    }
+
+    // Methode zum Zurücksetzen der Daten
+    public void ResetData()
+    {
+        // Setze alle Werte auf die Standardwerte zurück
+        PlayerData.Instance.money = 0f;
+        PlayerData.Instance.gems = 0f;
+        PlayerData.Instance.baseMoneyPerClick = 1f;// Zurücksetzen auf den Startwert
+        PlayerData.Instance.rebirthBonusMoneyPerClick = 0f;
+        PlayerData.Instance.baseGemsPerClick = 1f;
+        PlayerData.Instance.passiveIncome = 0f;
+        PlayerData.Instance.goodPassiveIncome = 0f;
+        PlayerData.Instance.passiverebirthIncome = 0f;
+        PlayerData.Instance.currentClickUpgradeIndex = 0;
+        PlayerData.Instance.currentPassiveUpgradeIndex = 0;
+        PlayerData.Instance.currentGoodPassiveUpgradeIndex = 0;
+        PlayerData.Instance.currentMegaClickUpgradeIndex = 0;
+        PlayerData.Instance.currentRebirthUpgradeIndex = 0;
+        PlayerData.Instance.rebirthPoints = 0;
+        PlayerData.Instance.passiverebirthIncome = 0f;
+        PlayerData.Instance.currentRebirthPassiveUpgradeIndex = 0;
+        PlayerData.Instance.currentGemUpgradeIndex = 0;
+        PlayerData.Instance.gemPrestigeLevel = 0;
+        PlayerData.Instance.gemPrestigeMoneyMultiplier = 1;
+        PlayerData.Instance.rebirthPointMultiplier = 1f;
+        PlayerData.Instance.gemMutiplier = 1;
+        PlayerData.Instance.currentRebirthGemPassiveUpgradeIndex = 0;
+        PlayerData.Instance.rebirthgempassiveIncome = 0f;
+        PlayerData.Instance.isGemAreaUnlocked = false;
+        PlayerData.Instance.playerLevel = 1;
+        PlayerData.Instance.currentClicks = 0;
+        PlayerData.Instance.skillPoints = 0;
+        PlayerData.Instance.bonusMoneyPerClick = 0;
+        PlayerData.Instance.clickCounter = 0;
+
+
+
+
+
+        SaveData(); // Speichere die zurückgesetzten Daten
+    }
+    public void ResetPlayerData()
+    {
+        PlayerData.Instance.money = 0;
+        PlayerData.Instance.baseMoneyPerClick = 1; // Zurücksetzen auf den Startwert
+        PlayerData.Instance.currentClickUpgradeIndex = 0;
+        PlayerData.Instance.currentPassiveUpgradeIndex = 0;
+        PlayerData.Instance.currentGoodPassiveUpgradeIndex = 0;
+        PlayerData.Instance.currentMegaClickUpgradeIndex = 0;
+        PlayerData.Instance.passiveIncome = 0;
+        PlayerData.Instance.goodPassiveIncome = 0;
+
+        // Rebith-Bonus bleibt unverändert
+    }
+
+}
