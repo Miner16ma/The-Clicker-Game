@@ -1,0 +1,124 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class SkillTreeManager : MonoBehaviour
+{
+
+    public static SkillTreeManager Instance { get; private set; }
+
+    public Text upgradeOneText;
+    public Text upgradeTwoText;
+    public Text upgradeThreeText;
+    public Button upgradeOneButton;
+    public Button upgradeTwoButton;
+    public Button upgradeThreeButton;
+    public PlayerData playerData;
+
+    private bool upgradeOnePurchased = false;
+    private bool upgradeTwoPurchased = false;
+    private bool upgradeThreePurchased = false;
+
+    void Start()
+    {
+        UpdateUI();
+
+        // Listener für die Upgrade-Buttons hinzufügen
+        upgradeOneButton.onClick.AddListener(() => BuyMoneyPerClickUpgrade1());
+        upgradeTwoButton.onClick.AddListener(() => BuyMoneyPerClickUpgrade2());
+        upgradeThreeButton.onClick.AddListener(() => BuyDoubleMoneyOn50thClickUpgrade());
+    }
+
+    void UpdateUI()
+    {
+        // Update der Upgrade-Beschreibungen und Aktivierung der Buttons je nach Kaufstatus
+        upgradeOneText.text = "Upgrade 1: +1 Geld pro Klick\nKosten: 1 Skillpunkt";
+
+        if (upgradeOnePurchased)
+        {
+            upgradeTwoText.text = "Upgrade 2: +3 Geld pro Klick\nKosten: 2 Skillpunkte";
+            upgradeTwoButton.interactable = !upgradeTwoPurchased;
+            upgradeOneButton.GetComponent<Image>().color = Color.red;
+        }
+        else
+        {
+            upgradeTwoText.text = "Upgrade 2: ??\nKosten: 2 Skillpunkte";
+            upgradeTwoButton.interactable = false;
+            upgradeOneButton.GetComponent<Image>().color = Color.white;
+        }
+
+        if (upgradeTwoPurchased)
+        {
+            upgradeTwoButton.GetComponent<Image>().color = Color.red;
+            upgradeThreeText.text = "Upgrade 3: Doppelte Einnahmen bei jedem 50. Klick\nKosten: 3 Skillpunkte";
+            upgradeThreeButton.interactable = !upgradeThreePurchased;
+        }
+        else
+        {
+            upgradeThreeText.text = "Upgrade 3: ??\nKosten: 3 Skillpunkte";
+            upgradeThreeButton.interactable = false;
+        }
+
+        if (upgradeThreePurchased)
+        {
+            upgradeThreeButton.GetComponent<Image>().color = Color.red;
+        }
+    }
+
+    void BuyMoneyPerClickUpgrade1()
+    {
+        if (!upgradeOnePurchased && playerData.skillPoints >= 1)
+        {
+            playerData.bonusMoneyPerClick += 1;
+            playerData.skillPoints -= 1;
+            upgradeOnePurchased = true;
+            PlayerData.Instance.SavePlayerData();
+            UpdateUI();
+        }
+    }
+
+    void BuyMoneyPerClickUpgrade2()
+    {
+        if (upgradeOnePurchased && !upgradeTwoPurchased && playerData.skillPoints >= 2)
+        {
+            playerData.bonusMoneyPerClick += 3;
+            playerData.skillPoints -= 2;
+            upgradeTwoPurchased = true;
+            PlayerData.Instance.SavePlayerData();
+            UpdateUI();
+        }
+    }
+
+    void BuyDoubleMoneyOn50thClickUpgrade()
+    {
+        if (upgradeTwoPurchased && !upgradeThreePurchased && playerData.skillPoints >= 3)
+        {
+            upgradeThreePurchased = true;
+            playerData.skillPoints -= 3;
+            PlayerData.Instance.SavePlayerData();
+            UpdateUI();
+        }
+    }
+
+    public void HandleClick()
+    {
+        playerData.clickCounter++; // Klickzähler erhöhen
+        Debug.Log("Klickzähler erhöht: " + playerData.clickCounter); // Debug-Ausgabe
+
+        // Gesamtgeld pro Klick berechnen
+        float totalMoneyPerClick = playerData.baseMoneyPerClick + playerData.bonusMoneyPerClick + playerData.rebirthBonusMoneyPerClick;
+
+        // Prüfen, ob Upgrade 3 gekauft wurde und ob es der 50. Klick ist
+        if (upgradeThreePurchased && playerData.clickCounter % 50 == 0)
+        {
+            playerData.money += totalMoneyPerClick * 2f;
+        }
+        else
+        {
+            playerData.money += totalMoneyPerClick;
+        }
+
+        PlayerData.Instance.SavePlayerData(); // Speichert die aktualisierten Daten
+    }
+
+
+}
